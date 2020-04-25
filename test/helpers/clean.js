@@ -5,6 +5,11 @@ function clean (config, callback) {
   client.connect();
   client.query('DROP TABLE lorem', function (error, result) {
     client.end();
+
+    if (error && error.message && error.message.includes('does not exist')) {
+      return callback();
+    }
+
     if (error && error.includes('does not exist')) {
       return callback();
     }
