@@ -1,0 +1,34 @@
+{
+  "name": "postgres-fp",
+  "version": "1.0.0",
+  "keywords": [
+    "postgres",
+    "cockroach",
+    "memory",
+    "rdbms",
+    "db",
+    "database",
+    "sql",
+    "functional"
+  ],
+  "description": "A wrapper around postgres in function programming style",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/markwylde/postgres-fp.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "c8 -o /tmp node test"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "pg": "^8.0.3",
+    "righto": "^6.0.1",
+    "righto-tape": "^1.0.4"
+  },
+  "devDependencies": {
+    "c8": "^6.0.1",
+    "tape": "^4.11.0"
+  }
+}
