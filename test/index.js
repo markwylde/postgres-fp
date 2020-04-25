@@ -39,7 +39,7 @@ test('run: incorrect sql', function * (t) {
 
   const incorrectSql = righto(run, connection, '_WRONG SQL');
   yield righto.handle(incorrectSql, function (error, callback) {
-    t.equal(error.toString(), 'error: at or near "_wrong": syntax error');
+    t.ok(error.toString().includes('syntax error'))
 
     close(connection);
   });
@@ -64,7 +64,7 @@ test('getAll: incorrect sql', function * (t) {
 
   const incorrectSql = righto(getAll, connection, '_WRONG SQL');
   yield righto.handle(incorrectSql, function (error, callback) {
-    t.equal(error.toString(), 'error: at or near "_wrong": syntax error');
+    t.ok(error.toString().includes('syntax error'))
 
     close(connection);
   });
@@ -142,7 +142,7 @@ test('getOne: incorrect sql', function * (t) {
 
   const incorrectSql = righto(getOne, connection, '_WRONG SQL');
   yield righto.handle(incorrectSql, function (error, callback) {
-    t.equal(error.toString(), 'error: at or near "_wrong": syntax error');
+    t.ok(error.toString().includes('syntax error'))
 
     close(connection);
   });
