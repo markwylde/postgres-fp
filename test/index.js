@@ -13,7 +13,7 @@ const config = {
   host: 'localhost',
   username: 'postgres',
   database: 'test',
-  port: 26257
+  port: 5432 // cockroach? 26257
 };
 
 test('connect', t => {
