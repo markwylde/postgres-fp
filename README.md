@@ -66,37 +66,11 @@ testResults(function (error, results) {
 })
 ```
 
-Streaming records one at a time
-```javascript
-const righto = require('righto')
-const connect = require('postgres-fp/connect')
-const execute = require('postgres-fp/execute')
-const getEach = require('postgres-fp/getEach')
-
-const connection = righto(connect, {
-  hostname: 'localhost',
-  port: 1000
-})
-const tableCreated = righto(execute, connection, 'CREATE TABLE lorem (info TEXT)')
-const rowStream = righto(getEach, connection, 'SELECT * FROM test', righto.after(tableCreated))
-
-rowStream(function (error, forEachRow) {
-  if (error) {
-    return console.log('ERROR: ', error)
-  }
-
-  forEachRow(function (row) {
-    console.log(row)
-  })
-})
-```
-
 ## Functions signatures
 ### connect -> filename -> [mode] -> (error, connection)
 ### run -> connection -> sql -> [parameters] -> (error, result={lastId, changes})
 ### getAll -> connection -> sql -> (error, rows)
 ### getOne -> connection -> sql -> (error, row)
-### getEach -> connection -> sql -> [parameters] -> (error, forEachRow -> (row))
 ### batch (not implemented yet)
 ### execute -> connection -> sql -> (error, connection)
 ### close -> connection -> (error)
