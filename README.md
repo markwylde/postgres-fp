@@ -13,36 +13,6 @@ npm install --save postgres-fp
 ```
 
 ## Example
-### With callbacks
-```javascript
-const connect = require('postgres-fp/connect')
-const execute = require('postgres-fp/execute')
-const getAll = require('postgres-fp/getAll')
-
-function getTestRecords (callback) {
-  connect({
-    hostname: 'localhost',
-    port: 1000
-  }, function (error, connection) {
-    if (error) { return callback(error) }
-    execute(connection, 'CREATE TABLE lorem (info TEXT)', function (error, tableCreated) {
-      if (error) { return callback(error) }
-      getAll(connection, 'SELECT * FROM test', function (error, testResults) {
-        if (error) { return callback(error) }
-        callback(null, testResults)
-      })
-    })
-  })
-}
-
-getTestRecords(function (error, testRecords) {
-  if (error) {
-    throw error
-  }
-  console.log(testRecords)
-})
-```
-
 ### With [righto](https://github.com/KoryNunn/righto)
 ```javascript
 const righto = require('righto')
@@ -64,6 +34,28 @@ testResults(function (error, results) {
 
   console.log(results)
 })
+```
+
+### With promises
+```javascript
+const {promisify} = require('util');
+
+const connect = promisify(require('postgres-fp/connect'))
+const execute = promisify(require('postgres-fp/execute'))
+const getAll = promisify(require('postgres-fp/getAll'))
+
+async function getTestRecords () {
+  const connection = await connect({
+    hostname: 'localhost',
+    port: 1000
+  })
+
+  await execute(connection, 'CREATE TABLE lorem (info TEXT)')
+
+  const results = await getAll(connection, 'SELECT * FROM test')
+
+  console.log(results)
+}
 ```
 
 ## Functions signatures
