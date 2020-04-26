@@ -8,10 +8,7 @@ function getOne (connection, sql, parameters, callback) {
     parameters = [];
   }
 
-  connection.query({
-    text: sql,
-    parameters
-  }, function (error, result) {
+  connection.query(sql, parameters, function (error, result) {
     if (error) {
       return callback(error);
     }

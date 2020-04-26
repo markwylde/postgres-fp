@@ -13,7 +13,7 @@ const config = {
   host: 'localhost',
   username: 'postgres',
   database: 'test',
-  port: 5432 // cockroach? 26257
+  port: 5432 // postgres 5432 // cockroach? 26257
 };
 
 test('connect', t => {
@@ -171,6 +171,24 @@ test('getOne: one record', function * (t) {
   yield righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test\')');
   const record = yield righto(getOne, connection, 'SELECT * FROM lorem');
   t.deepEqual(record, { info: 'test' });
+
+  yield righto(close, connection);
+});
+
+test('getAll: with parameters', function * (t) {
+  t.plan(1);
+
+  yield righto(clean, config);
+
+  const connection = yield righto(connect, config);
+  yield righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
+  yield righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test1\')');
+  yield righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test2\')');
+  yield righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test3\')');
+  const rows = yield righto(getOne, connection, 'SELECT * FROM lorem WHERE info = $1', ['test3']);
+  t.deepEqual(rows, {
+    info: 'test3'
+  });
 
   yield righto(close, connection);
 });
