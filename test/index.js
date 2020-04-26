@@ -39,7 +39,7 @@ test('run: incorrect sql', function * (t) {
 
   const incorrectSql = righto(run, connection, '_WRONG SQL');
   yield righto.handle(incorrectSql, function (error, callback) {
-    t.ok(error.toString().includes('syntax error'))
+    t.ok(error.toString().includes('syntax error'));
 
     close(connection);
   });
@@ -57,6 +57,20 @@ test('run', function * (t) {
   t.ok(tableCreated);
 });
 
+test('run with parameters', function * (t) {
+  t.plan(2);
+
+  yield righto(clean, config);
+
+  const connection = yield righto(connect, config);
+  const tableCreated = yield righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
+  const recordInserted = yield righto(run, connection, 'INSERT INTO lorem (info) VALUES ($1)', ['test']);
+  yield righto(close, connection);
+
+  t.ok(tableCreated);
+  t.ok(recordInserted);
+});
+
 test('getAll: incorrect sql', function * (t) {
   t.plan(1);
 
@@ -64,7 +78,7 @@ test('getAll: incorrect sql', function * (t) {
 
   const incorrectSql = righto(getAll, connection, '_WRONG SQL');
   yield righto.handle(incorrectSql, function (error, callback) {
-    t.ok(error.toString().includes('syntax error'))
+    t.ok(error.toString().includes('syntax error'));
 
     close(connection);
   });
@@ -142,7 +156,7 @@ test('getOne: incorrect sql', function * (t) {
 
   const incorrectSql = righto(getOne, connection, '_WRONG SQL');
   yield righto.handle(incorrectSql, function (error, callback) {
-    t.ok(error.toString().includes('syntax error'))
+    t.ok(error.toString().includes('syntax error'));
 
     close(connection);
   });
