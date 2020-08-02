@@ -1,5 +1,5 @@
 const righto = require('righto');
-const test = require('righto-tape');
+const test = require('tape');
 
 const connect = require('../connect');
 const run = require('../run');
@@ -11,12 +11,13 @@ const clean = require('./helpers/clean');
 
 const config = {
   host: 'localhost',
-  username: 'postgres',
+  user: 'postgres',
+  password: 'password',
   database: 'test',
   port: 5432 // postgres 5432 // cockroach? 26257
 };
 
-test('connect', t => {
+test('connect', function (t) {
   t.plan(2);
 
   connect(config, function (error, connection) {
@@ -32,177 +33,216 @@ test('connect', t => {
   });
 });
 
-test('run: incorrect sql', function * (t) {
+test('run: incorrect sql', function (t) {
   t.plan(1);
 
-  const connection = yield righto(connect, config);
+  connect(config, function (error, connection) {
+    if (error) {
+      throw error;
+    }
 
-  const incorrectSql = righto(run, connection, '_WRONG SQL');
-  yield righto.handle(incorrectSql, function (error, callback) {
-    t.ok(error.toString().includes('syntax error'));
-
-    close(connection);
+    run(connection, '_WRONG SQL', function (error, connection) {
+      t.ok(error.toString().includes('syntax error'));
+    });
   });
 });
 
-test('run', function * (t) {
-  t.plan(1);
-
-  yield righto(clean, config);
-
-  const connection = yield righto(connect, config);
-  const tableCreated = yield righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
-  yield righto(close, connection);
-
-  t.ok(tableCreated);
-});
-
-test('run with parameters', function * (t) {
+test('run', function (t) {
   t.plan(2);
 
-  yield righto(clean, config);
+  const cleaned = righto(clean, config);
+  const connection = righto(connect, config, righto.after(cleaned));
+  const tableCreated = righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
+  const closed = righto(close, connection, righto.after(tableCreated));
+  const result = righto.mate(tableCreated, righto.after(closed));
 
-  const connection = yield righto(connect, config);
-  const tableCreated = yield righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
-  const recordInserted = yield righto(run, connection, 'INSERT INTO lorem (info) VALUES ($1)', ['test']);
-  yield righto(close, connection);
-
-  t.ok(tableCreated);
-  t.ok(recordInserted);
-});
-
-test('getAll: incorrect sql', function * (t) {
-  t.plan(1);
-
-  const connection = yield righto(connect, config);
-
-  const incorrectSql = righto(getAll, connection, '_WRONG SQL');
-  yield righto.handle(incorrectSql, function (error, callback) {
-    t.ok(error.toString().includes('syntax error'));
-
-    close(connection);
+  result(function (error, tableCreated) {
+    t.notOk(error);
+    t.ok(tableCreated);
   });
 });
 
-test('getAll: no records', function * (t) {
-  t.plan(1);
+test('run with parameters', function (t) {
+  t.plan(3);
 
-  yield righto(clean, config);
+  const cleaned = righto(clean, config);
+  const connection = righto(connect, config, righto.after(cleaned));
+  const tableCreated = righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
+  const recordInserted = righto(run, connection, 'INSERT INTO lorem (info) VALUES ($1)', ['test'], righto.after(tableCreated));
+  const closed = righto(close, connection, righto.after(recordInserted));
+  const result = righto.mate(tableCreated, recordInserted, righto.after(closed));
 
-  const connection = yield righto(connect, config);
-  yield righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
-  const rows = yield righto(getAll, connection, 'SELECT * FROM lorem');
-  t.deepEqual(rows, []);
-
-  yield righto(close, connection);
+  result(function (error, tableCreated, recordInserted) {
+    t.notOk(error);
+    t.ok(tableCreated);
+    t.ok(recordInserted);
+  });
 });
 
-test('getAll: one record', function * (t) {
+test('getAll: incorrect sql', function (t) {
   t.plan(1);
 
-  yield righto(clean, config);
+  connect(config, function (error, connection) {
+    if (error) {
+      throw error;
+    }
 
-  const connection = yield righto(connect, config);
-  yield righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
-  yield righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test\')');
-  const rows = yield righto(getAll, connection, 'SELECT * FROM lorem');
-  t.deepEqual(rows, [{ info: 'test' }]);
-
-  yield righto(close, connection);
+    getAll(connection, '_WRONG SQL', function (error, connection) {
+      t.ok(error.toString().includes('syntax error'));
+    });
+  });
 });
 
-test('getAll: multiple records', function * (t) {
-  t.plan(1);
+test('getAll: no records', function (t) {
+  t.plan(2);
 
-  yield righto(clean, config);
+  const cleaned = righto(clean, config);
+  const connection = righto(connect, config, righto.after(cleaned));
+  const tableCreated = righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
+  const rows = righto(getAll, connection, 'SELECT * FROM lorem', righto.after(tableCreated));
+  const closed = righto(close, connection, righto.after(rows));
+  const result = righto.mate(rows, righto.after(closed));
 
-  const connection = yield righto(connect, config);
-  yield righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
-  yield righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test1\')');
-  yield righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test2\')');
-  yield righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test3\')');
-  const rows = yield righto(getAll, connection, 'SELECT * FROM lorem');
-  t.deepEqual(rows, [
-    { info: 'test1' },
-    { info: 'test2' },
-    { info: 'test3' }
+  result(function (error, rows) {
+    t.notOk(error);
+    t.deepEqual(rows, []);
+  });
+});
+
+test('getAll: one record', function (t) {
+  t.plan(2);
+
+  const cleaned = righto(clean, config);
+  const connection = righto(connect, config, righto.after(cleaned));
+  const tableCreated = righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
+  const inserted = righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test\')', righto.after(tableCreated));
+  const rows = righto(getAll, connection, 'SELECT * FROM lorem', righto.after(inserted));
+  const closed = righto(close, connection, righto.after(rows));
+  const result = righto.mate(rows, righto.after(closed));
+
+  result(function (error, rows) {
+    t.notOk(error);
+    t.deepEqual(rows, [{ info: 'test' }]);
+  });
+});
+
+test('getAll: multiple records', function (t) {
+  t.plan(2);
+
+  const cleaned = righto(clean, config);
+  const connection = righto(connect, config, righto.after(cleaned));
+  const tableCreated = righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
+  const inserted = righto.all([
+    righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test1\')', righto.after(tableCreated)),
+    righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test2\')', righto.after(tableCreated)),
+    righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test3\')', righto.after(tableCreated))
   ]);
 
-  yield righto(close, connection);
-});
+  const rows = righto(getAll, connection, 'SELECT * FROM lorem', righto.after(inserted));
+  const closed = righto(close, connection, righto.after(rows));
 
-test('getAll: with parameters', function * (t) {
-  t.plan(1);
-
-  yield righto(clean, config);
-
-  const connection = yield righto(connect, config);
-  yield righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
-  yield righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test1\')');
-  yield righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test2\')');
-  yield righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test3\')');
-  const rows = yield righto(getAll, connection, 'SELECT * FROM lorem WHERE info = $1', ['test3']);
-  t.deepEqual(rows, [
-    { info: 'test3' }
-  ]);
-
-  yield righto(close, connection);
-});
-
-test('getOne: incorrect sql', function * (t) {
-  t.plan(1);
-
-  const connection = yield righto(connect, config);
-
-  const incorrectSql = righto(getOne, connection, '_WRONG SQL');
-  yield righto.handle(incorrectSql, function (error, callback) {
-    t.ok(error.toString().includes('syntax error'));
-
-    close(connection);
+  const result = righto.mate(rows, righto.after(closed));
+  result(function (error, rows) {
+    t.notOk(error);
+    t.deepEqual(
+      rows.sort((a, b) => a.info < b.info ? -1 : 0),
+      [
+        { info: 'test1' },
+        { info: 'test2' },
+        { info: 'test3' }
+      ]);
   });
 });
 
-test('getOne: no records', function * (t) {
-  t.plan(1);
+test('getAll: with parameters', function (t) {
+  t.plan(2);
 
-  yield righto(clean, config);
+  const cleaned = righto(clean, config);
+  const connection = righto(connect, config, righto.after(cleaned));
+  const tableCreated = righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
 
-  const connection = yield righto(connect, config);
-  yield righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
-  const record = yield righto(getOne, connection, 'SELECT * FROM lorem');
-  t.notOk(record);
+  const insert1 = righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test1\')', righto.after(tableCreated));
+  const insert2 = righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test2\')', righto.after(insert1));
+  const insert3 = righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test3\')', righto.after(insert2));
 
-  yield righto(close, connection);
-});
+  const rows = righto(getAll, connection, 'SELECT * FROM lorem WHERE info = $1', ['test3'], righto.after(insert3));
 
-test('getOne: one record', function * (t) {
-  t.plan(1);
+  const closed = righto(close, connection, righto.after(rows));
 
-  yield righto(clean, config);
-
-  const connection = yield righto(connect, config);
-  yield righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
-  yield righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test\')');
-  const record = yield righto(getOne, connection, 'SELECT * FROM lorem');
-  t.deepEqual(record, { info: 'test' });
-
-  yield righto(close, connection);
-});
-
-test('getAll: with parameters', function * (t) {
-  t.plan(1);
-
-  yield righto(clean, config);
-
-  const connection = yield righto(connect, config);
-  yield righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
-  yield righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test1\')');
-  yield righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test2\')');
-  yield righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test3\')');
-  const rows = yield righto(getOne, connection, 'SELECT * FROM lorem WHERE info = $1', ['test3']);
-  t.deepEqual(rows, {
-    info: 'test3'
+  const result = righto.mate(rows, righto.after(closed));
+  result(function (error, rows) {
+    t.notOk(error);
+    t.deepEqual(rows, [
+      { info: 'test3' }
+    ]);
   });
+});
 
-  yield righto(close, connection);
+test('getOne: incorrect sql', function (t) {
+  t.plan(1);
+
+  connect(config, function (error, connection) {
+    if (error) {
+      throw error;
+    }
+
+    getOne(connection, '_WRONG SQL', function (error, connection) {
+      t.ok(error.toString().includes('syntax error'));
+    });
+  });
+});
+
+test('getOne: no records', function (t) {
+  t.plan(2);
+
+  const cleaned = righto(clean, config);
+  const connection = righto(connect, config, righto.after(cleaned));
+  const tableCreated = righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
+  const rows = righto(getOne, connection, 'SELECT * FROM lorem', righto.after(tableCreated));
+  const closed = righto(close, connection, righto.after(rows));
+  const result = righto.mate(rows, righto.after(closed));
+
+  result(function (error, rows) {
+    t.notOk(error);
+    t.notOk(rows);
+  });
+});
+
+test('getOne: one record', function (t) {
+  t.plan(2);
+
+  const cleaned = righto(clean, config);
+  const connection = righto(connect, config, righto.after(cleaned));
+  const tableCreated = righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
+  const inserted = righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test\')', righto.after(tableCreated));
+  const rows = righto(getOne, connection, 'SELECT * FROM lorem', righto.after(inserted));
+  const closed = righto(close, connection, righto.after(rows));
+  const result = righto.mate(rows, righto.after(closed));
+
+  result(function (error, rows) {
+    t.notOk(error);
+    t.deepEqual(rows, { info: 'test' });
+  });
+});
+
+test('getOne: with parameters', function (t) {
+  t.plan(2);
+
+  const cleaned = righto(clean, config);
+  const connection = righto(connect, config, righto.after(cleaned));
+  const tableCreated = righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
+
+  const insert1 = righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test1\')', righto.after(tableCreated));
+  const insert2 = righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test2\')', righto.after(insert1));
+  const insert3 = righto(run, connection, 'INSERT INTO lorem (info) VALUES (\'test3\')', righto.after(insert2));
+
+  const rows = righto(getOne, connection, 'SELECT * FROM lorem WHERE info = $1', ['test3'], righto.after(insert3));
+
+  const closed = righto(close, connection, righto.after(rows));
+
+  const result = righto.mate(rows, righto.after(closed));
+  result(function (error, rows) {
+    t.notOk(error);
+    t.deepEqual(rows, { info: 'test3' });
+  });
 });
