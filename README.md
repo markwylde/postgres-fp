@@ -38,21 +38,17 @@ testResults(function (error, results) {
 
 ### With promises
 ```javascript
-const {promisify} = require('util');
-
-const connect = promisify(require('postgres-fp/connect'))
-const execute = promisify(require('postgres-fp/execute'))
-const getAll = promisify(require('postgres-fp/getAll'))
+const postgres = promisify(require('postgres-fp/promises'))
 
 async function getTestRecords () {
-  const connection = await connect({
+  const connection = await postgres.connect({
     hostname: 'localhost',
     port: 1000
   })
 
-  await execute(connection, 'CREATE TABLE lorem (info TEXT)')
+  await postgres.execute(connection, 'CREATE TABLE lorem (info TEXT)')
 
-  const results = await getAll(connection, 'SELECT * FROM test')
+  const results = await postgres.getAll(connection, 'SELECT * FROM test')
 
   console.log(results)
 }
