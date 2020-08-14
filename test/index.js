@@ -10,23 +10,23 @@ const close = require('../close');
 
 const clean = require('./helpers/clean');
 
-// COCKROACH
-const config = {
-  host: 'localhost',
-  user: 'root',
-  password: '',
-  database: 'postgres',
-  port: 26257
-};
-
-// // POSTGRES
+// // COCKROACH
 // const config = {
 //   host: 'localhost',
-//   user: 'postgres',
-//   password: 'password',
-//   database: 'test',
-//   port: 5432
+//   user: 'root',
+//   password: '',
+//   database: 'postgres',
+//   port: 26257
 // };
+
+// POSTGRES
+const config = {
+  host: 'localhost',
+  user: 'postgres',
+  password: 'password',
+  database: 'test',
+  port: 5432
+};
 
 test('connect', function (t) {
   t.plan(2);
