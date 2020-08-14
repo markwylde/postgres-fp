@@ -57,7 +57,7 @@ async function getTestRecords () {
 ## Functions signatures
 ### connect -> filename -> [mode] -> (error, connection)
 ### run -> connection -> sql -> [parameters] -> (error, result={lastId, changes})
-### insert -> connection -> object -> (error, result={lastId, changes})
+### insert -> connection -> tableName -> object -> (error, result={lastId, changes})
 ### getAll -> connection -> sql -> (error, rows)
 ### getOne -> connection -> sql -> (error, row)
 ### batch (not implemented yet)
