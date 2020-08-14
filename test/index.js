@@ -3,19 +3,30 @@ const test = require('tape');
 
 const connect = require('../connect');
 const run = require('../run');
+const insert = require('../insert');
 const getAll = require('../getAll');
 const getOne = require('../getOne');
 const close = require('../close');
 
 const clean = require('./helpers/clean');
 
+// COCKROACH
 const config = {
   host: 'localhost',
-  user: 'postgres',
-  password: 'password',
-  database: 'test',
-  port: 5432 // postgres 5432 // cockroach? 26257
+  user: 'root',
+  password: '',
+  database: 'postgres',
+  port: 26257
 };
+
+// // POSTGRES
+// const config = {
+//   host: 'localhost',
+//   user: 'postgres',
+//   password: 'password',
+//   database: 'test',
+//   port: 5432
+// };
 
 test('connect', function (t) {
   t.plan(2);
@@ -76,6 +87,38 @@ test('run with parameters', function (t) {
     t.notOk(error);
     t.ok(tableCreated);
     t.ok(recordInserted);
+  });
+});
+
+test('insert object', function (t) {
+  t.plan(3);
+
+  const cleaned = righto(clean, config);
+  const connection = righto(connect, config, righto.after(cleaned));
+  const tableCreated = righto(run, connection, 'CREATE TABLE lorem (info TEXT)');
+  const recordInserted = righto(insert, connection, 'lorem', { info: 'test' }, righto.after(tableCreated));
+  const closed = righto(close, connection, righto.after(recordInserted));
+  const result = righto.mate(tableCreated, recordInserted, righto.after(closed));
+
+  result(function (error, tableCreated, recordInserted) {
+    t.notOk(error);
+    t.ok(tableCreated);
+    t.ok(recordInserted);
+  });
+});
+
+test('insert object - invalid table', function (t) {
+  t.plan(2);
+
+  const cleaned = righto(clean, config);
+  const connection = righto(connect, config, righto.after(cleaned));
+  const recordInserted = righto(insert, connection, 'wopps', {});
+  const closed = righto(close, connection, righto.after(recordInserted));
+  const result = righto.mate(recordInserted, righto.after(closed));
+
+  result(function (error, recordInserted) {
+    t.ok(error);
+    t.notOk(recordInserted);
   });
 });
 
